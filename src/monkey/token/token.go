@@ -7,18 +7,18 @@ type Token struct {
 
 const (
     ILLEGAL = "ILLEGAL"
-    EOF = "EOF"
+    EOF     = "EOF"
 
     // 識別子 + リテラル
     IDENT = "IDENT" // add, foobar, x, y, ...
-    INT = "INT"
+    INT   = "INT"
 
     // 演算子
-    ASSIGN = "="
-    PLUS = "+"
+    ASSIGN   = "="
+    PLUS     = "+"
 
     // デリミタ
-    COMMA = ","
+    COMMA     = ","
     SEMICOLON = ";"
 
     LPAREN = "("
@@ -28,5 +28,17 @@ const (
 
     // キーワード
     FUNCTION = "FUNCTION"
-    LET = "LET"
+    LET      = "LET"
 )
+
+var keywords = map[string]TokenType{
+    "fn":     FUNCTION,
+    "let":    LET,
+}
+
+func LookupIdent(ident string) TokenType {
+    if tok, ok := keywords[ident]; ok {
+        return tok
+    }
+    return IDENT
+}

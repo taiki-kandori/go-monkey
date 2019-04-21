@@ -7,6 +7,22 @@ import (
     "monkey/token"
 )
 
+type (
+    prefixParseFn func() ast.Expression
+    infixParseFn func(ast.Expression) ast.Expression
+)
+
+const (
+    _ int = iota
+    LOWEST
+    EQUALS      // ==
+    LESSGREATER // > or <
+    SUM         // +
+    PROOUCT     // *
+    PREFIX      // -X or !X
+    CALL        // myFunction(X)
+)
+
 type Parser struct {
     l *lexer.Lexer
 
@@ -18,16 +34,14 @@ type Parser struct {
     infixParseFns  map[token.TokenType]infixParseFn
 }
 
-type {
-    prefixParseFn func() ast.Expression
-    infixParseFn func(ast.Expression) ast.Expression
-}
-
 func New(l *lexer.Lexer) *Parser {
     p := &Parser{
         l:      l,
         errors: []string{},
     }
+
+    p.prefixParseFns = make(map[token.TokenType]prefixParseFn)
+    p.registerPrefix(token.IDENT, p.parseIdentififer)
 
     // 2つトークンを読み込む。curTokenとpeekTokenの両方がセットされる。
     p.nextToken()
@@ -63,7 +77,7 @@ func (p *Parser) parseStatement() ast.Statement {
     case token.RETURN:
         return p.parseReturnStatement()
     default:
-        return nil
+        return p.parseExpressionStatement()
     }
 }
 
@@ -100,6 +114,32 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
     }
 
     return stmt
+}
+
+func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
+    stmt := &ast.ExpressionStatement{Token: p.curToken}
+
+    stmt.Expression = p.parseExpression(LOWEST)
+
+    if p.peekTokenIs(token.SEMICOLON) {
+        p.nextToken()
+    }
+
+    return stmt
+}
+
+func (p *Parser) parseExpression(precedence int) ast.Expression {
+    prefix := p.prefixParseFns[p.curToken.Type]
+    if prefix == nil {
+        return nil
+    }
+    leftEXP := prefix()
+
+    return leftEXP
+}
+
+func (p *Parser) parseIdentififer() ast.Expression {
+    return &ast.Identifier{Token: p.curToken, Value: p.curToken.Literal}
 }
 
 func (p *Parser) curTokenIs(t token.TokenType) bool {
